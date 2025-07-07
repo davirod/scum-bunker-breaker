@@ -1,0 +1,95 @@
+<!doctype html><html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>SCUM Bunker Puzzle Solver</title><script src="https://cdn.tailwindcss.com"></script><script defer="defer" src="./js/app.js"></script></head><body class="bg-gray-100 min-h-screen p-6"><div class="max-w-3xl mx-auto bg-white p-6 rounded shadow"><h1 class="text-2xl font-bold mb-4">SCUM Bunker Puzzle Solver</h1><div class="grid grid-cols-3 gap-4 mb-4"><label class="flex flex-col"><span class="font-semibold">Input</span> <input type="number" id="inputVal" value="60" class="border p-2 rounded"/></label> <label class="flex flex-col"><span class="font-semibold">Output A (Red)</span> <input type="number" id="outputA" value="240" class="border p-2 rounded"/></label> <label class="flex flex-col"><span class="font-semibold">Output B (Blue)</span> <input type="number" id="outputB" value="45" class="border p-2 rounded"/></label></div><div class="grid grid-cols-3 gap-2 font-semibold text-center mb-2"><div>Red Op</div><div>Position</div><div>Blue Op</div></div><div id="panel"></div><button onclick="solve()" class="bg-blue-600 text-white px-4 py-2 rounded mt-4">Solve</button> <button onclick="clearForm()" class="bg-red-600 text-white px-4 py-2 rounded mt-4">Clear</button><div id="solutionBox" class="mt-6 p-4 bg-gray-200 rounded whitespace-pre font-mono"></div></div><script>const redOps = ['*2', '/2', '/2', '+60', '', '+40', '*2', ''];
+  const blueOps = ['+100', '-60', '-60', '+10', '-20', '', '', '/2'];
+
+  function buildPanel() {
+    const container = document.getElementById('panel');
+    container.innerHTML = ''; // Clear previous content
+    for (let i = 0; i < 8; i++) {
+      const row = document.createElement('div');
+      row.className = 'grid grid-cols-3 gap-2 mb-2';
+      row.innerHTML = `
+          <input type="text" id="red-${i}" value="${redOps[i]}" class="border p-2 rounded text-center" />
+          <div id="center-position-${i}" class="text-center py-2 font-mono">${i + 1}</div>
+          <input type="text" id="blue-${i}" value="${blueOps[i]}" class="border p-2 rounded text-center" />
+        `;
+      container.appendChild(row);
+    }
+  }
+
+  function applyOp(val, op) {
+    if (!op) return val;
+    op = op.replace(/\s+/g, '');
+    const operator = op.charAt(0);
+    const num = parseFloat(op.substring(1));
+    if (isNaN(num)) return val;
+
+    switch (operator) {
+      case '+': return val + num;
+      case '-': return val - num;
+      case '*': return val * num;
+      case '/': return val / num;
+      default: return val;
+    }
+  }
+
+  function nearlyEqual(a, b, epsilon = 0.001) {
+    return Math.abs(a - b) < epsilon;
+  }
+
+  function solve() {
+    const input = parseFloat(document.getElementById('inputVal').value);
+    const outputA = parseFloat(document.getElementById('outputA').value);
+    const outputB = parseFloat(document.getElementById('outputB').value);
+    const red = [], blue = [];
+
+    for (let i = 0; i < 8; i++) {
+      red.push(document.getElementById(`red-${i}`).value.trim());
+      blue.push(document.getElementById(`blue-${i}`).value.trim());
+    }
+
+    // Clear previous highlights
+    for (let i = 0; i < 8; i++) {
+      document.getElementById(`center-position-${i}`).classList.remove('bg-green-200');
+    }
+
+    for (let combo = 0; combo < 256; combo++) {
+      let valA = input;
+      let valB = input;
+      const config = [];
+
+      for (let i = 0; i < 8; i++) {
+        const isActive = (combo & (1 << i)) !== 0;
+        if (isActive) {
+          valA = applyOp(valA, red[i]);
+          valB = applyOp(valB, blue[i]);
+          config.push(`${i + 1} ON`);
+        } else {
+          config.push(`${i + 1} OFF`);
+        }
+      }
+
+      if (nearlyEqual(valA, outputA) && nearlyEqual(valB, outputB)) {
+        // Highlight the rows for the solution
+        for (let i = 0; i < 8; i++) {
+          if ((combo & (1 << i)) !== 0) {
+            document.getElementById(`center-position-${i}`).classList.add('bg-green-200');
+          }
+        }
+
+        document.getElementById('solutionBox').textContent = `✅ SOLUTION FOUND:\n\n${config.join('\n')}`;
+        return;
+      }
+    }
+
+    document.getElementById('solutionBox').textContent = '❌ No valid configuration found.';
+  }
+
+  function clearForm() {
+    document.getElementById('inputVal').value = '60';
+    document.getElementById('outputA').value = '240';
+    document.getElementById('outputB').value = '45';
+    document.getElementById('solutionBox').textContent = "";
+    buildPanel();
+  }
+
+  buildPanel();</script></body></html>
